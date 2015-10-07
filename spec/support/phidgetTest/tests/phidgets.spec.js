@@ -101,7 +101,7 @@ describe(
             }
         );
 
-         it(
+        it(
             'Verifies the label event',
             function(done){
 
@@ -114,11 +114,15 @@ describe(
                     'error',
                     errorHandler
                 );
-                console.log('this is the label for phidget', phidgetCore.Label);
+                console.log('this is the label for phidget', phidgetCore.label);
 
-                var label = phidgetCore.Label;
+                var label = phidgetCore.label;
 
-                phidgetCore.Label = '44rdt';
+                setTimeout(
+                    function(){
+                        phidgetCore.label = '44rdt';
+                    }, 100
+                );
 
                 function errorHandler(err){
                      phidgetCore.removeListener(
@@ -129,23 +133,21 @@ describe(
                     done();
                 }
 
-                function testCaseLabel(){
-
+                function testCaseLabel(data){
+                    if(data.key != 'Label'){
+                       return;
+                    }
                     phidgetCore.removeListener(
                         'changed',
                         testCaseLabel
                     );
-                    console.log(phidgetCore.Label);
 
-                    expect(phidgetCore.Label).toBe('44rdt');
-                    phidgetCore.Label = label;
+
+                    expect(phidgetCore.label).toBe('44rdt');
+                    phidgetCore.label = label;
                     console.log('ending before')
                     done();
-                }
-
-//                 expect(phidgetCore.Label).toBe('44rdt');
-//                done();
-            }
+                }            }
         );
 
         it(
@@ -174,7 +176,10 @@ describe(
                     done();
                 }
 
-                function testCaseRate(){
+                function testCaseRate(data){
+                    if(data.key != 'rate'){
+                       return;
+                    }
                     phidgetCore.removeListener(
                         'changed',
                         testCaseRate
@@ -182,7 +187,49 @@ describe(
 
                     expect(phidgetCore.rate).toBe(4);//rate rounds
                     phidgetCore.rate = rate;
-                    console.log('ending before')
+                    done();
+                }
+            }
+        );
+
+        it(
+            'Verify output is initially off(0)',
+            function(done){
+
+                phidgetCore.on(
+                    'changed',
+                    testSet
+                );
+
+                console.log('in set test before timeout', phidgetCore.data.Output[0]);
+
+                if (Number(phidgetCore.data.Output[0]) == 0){
+                    done();
+                }
+
+                else if (Number(phidgetCore.data.Output[0]) !== 0){
+                    setTimeout(
+                        function(){
+                            phidgetCore.set(
+                                {
+                                    type:'Output',
+                                    key:Number(0).toString(),
+                                    value:Number(0).toString()
+                                }
+                            );
+                            return;
+                        },1500
+                    );
+                }
+
+
+                function testSet(data){
+                     phidgetCore.removeListener(
+                        'changed',
+                        testSet
+                    );
+                    console.log(data);
+                    expect(phidgetCore.data.Output[0]).toBe('0');
                     done();
                 }
             }
@@ -191,11 +238,8 @@ describe(
         it(
             'Verifies Set function and changed event',
             function(done){
-                console.log(phidgetCore.data);
-
                 var orignalOutputValue = '0';
                 var changedValue = '1';
-
                 expect(phidgetCore.data.Output[0]).toBe(orignalOutputValue);
 
                 if(phidgetCore.data.Output[0]!==orignalOutputValue){
@@ -209,7 +253,7 @@ describe(
 
                 phidgetCore.on(
                     'changed',
-                    testCase
+                    testCaseOutput
                 );
 
 
@@ -222,74 +266,83 @@ describe(
                     done();
                 }
 
-                phidgetCore.set(
-                    {
-                        type : 'Output',
-                        key : '0',
-                        value : changedValue
-                    }
-                );
+                function testCaseOutput(data){
 
-                function testCase(){
+                    if(data.type !== 'Output'){
+                       return;
+                    }
+
+                    console.log('in test case output');
+
+                    phidgetCore.removeListener(
+                        'changed',
+                        testCaseOutput
+                    );
+
+                    phidgetCore.on(
+                        'changed',
+                        testChangedValue
+                    );
+
+                    console.log('Output 1',data);
+
                     if(!phidgetCore.data.Output){
                         console.log('no output, waiting...');
                     }
-                    phidgetCore.removeListener(
-                        'changed',
-                        testCase
-                    );
 
                     expect(Number(phidgetCore.data.Output[0])).toBe(Number(changedValue));
 
                     setTimeout(
                         function(){
-                            phidgetCore.on(
-                                'changed',
-                                testChangedValue
-                            );
+                          console.log('seetin again to orignal');
                             phidgetCore.set(
                                 {
-                                    type : 'Output',
-                                    key : '0',
-                                    value : orignalOutputValue
+                                    type:'Output',
+                                    key:Number(0).toString(),
+                                    value:Number(orignalOutputValue).toString()
                                 }
                             );
-                        },
-                        phidgetCore.rate*10
+                        }, 2000
+                        //phidgetCore.rate*10
                     );
                 }
 
-                function testChangedValue(){
-                    if(!phidgetCore.data.Output){
-                        console.log('no output, waiting...');
-                    }
+                function testChangedValue(data){
+                    console.log('Output 2',data);
+
+                    console.log('in test changed value');
+
                     phidgetCore.removeListener(
                         'changed',
                         testChangedValue
                     );
-                    phidgetCore.removeListener(
-                        'error',
-                        errorHandler
-                    );
+
+
+                    if(data.type != 'Output'){
+                       return;
+                    }
+
+                    if(!phidgetCore.data.Output){
+                        console.log('no output, waiting...');
+                    }
+
                     expect(Number(phidgetCore.data.Output[0])).toBe(Number(orignalOutputValue));
                     done();
                 }
+
+                setTimeout(
+                    function(){
+                        phidgetCore.set(
+                            {
+                                type:'Output',
+                                key:Number(0).toString(),
+                                value:Number(1).toString()
+                            }
+                        );
+                    },1500
+                );
             }
         );
-
-//        it(
-//            'Verifies log event',
-//            function(done){
-//               phidgetCore.on(
-//                   'log',
-//                   giveLog
-//               )
-//               function giveLog(data, err){
-//                    console.log('In Log ',data, err);
-//                    done();
-//               }
-//            }
-//        );
 
         it(
             'Verifies Phidget detached event',
@@ -323,7 +376,6 @@ describe(
                     console.log('in detach test');
                     expect(data.Status).toBe('Detached');
                     expect(data.value).toBe('Detached');
-                    console.log(data);
                     done();
                 }
             }
@@ -359,11 +411,43 @@ describe(
                         checkDisconnectedDevice
                     );
                     console.log('In Disconnected');
-                    console.log(phidgetCore.data);
                     done();
                 }
                 phidgetCore.quit();
 
+            }
+        );
+
+        it(
+            'Verifies log event',
+            function(done){
+                phidgetCore.on(
+                    'log',
+                    giveLog
+                );
+
+                phidgetCore.on(
+                    'error',
+                    errorHandler
+                );
+
+                function errorHandler(err){
+                    phidgetCore.removeListener(
+                        'error',
+                        errorHandler
+                    );
+                    expect(err).toBe(false);
+                    done();
+                }
+
+                function giveLog(data){
+                    setTimeout(
+                        function(){
+                            expect(data).toBeDefined();
+                            done();
+                        }, 3000
+                    );
+                }
             }
         );
     }
